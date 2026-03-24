@@ -17,5 +17,6 @@ websockets
 requests
 python-multipart
 psycopg2-binary
+bcrypt==4.1.2
 psycopg2
 alembic

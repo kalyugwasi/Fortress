@@ -15,12 +15,11 @@ async def expired_message_cleanup():
         await asyncio.sleep(60)
         db = SessionLocal()
         try:
-            # This calls message_repo.delete_expired_messages(db) via the service
             deleted_count = purge_expired_messages(db)
             if deleted_count > 0:
                 print(f"Purged {deleted_count} expired messages.")
         except Exception as e:
-            db.rollback()  # CRITICAL: Prevent PendingRollbackError for next cycles
+            db.rollback()  
             print(f"Cleanup error: {e}")
         finally:
             db.close()

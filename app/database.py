@@ -2,8 +2,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from app.config import settings
 
-# Support async URLs (e.g. postgresql+asyncpg://...) by switching to
-# the synchronous driver for the app code which uses sync sessions.
 DATABASE_URL = settings.DATABASE_URL
 
 if DATABASE_URL.startswith("postgresql+asyncpg"):
