@@ -1,13 +1,17 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base,sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
 from app.config import settings
 
+# Support async URLs (e.g. postgresql+asyncpg://...) by switching to
+# the synchronous driver for the app code which uses sync sessions.
 DATABASE_URL = settings.DATABASE_URL
 
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread":False}
-)
+if DATABASE_URL.startswith("postgresql+asyncpg"):
+    sync_database_url = DATABASE_URL.replace("+asyncpg", "+psycopg2")
+else:
+    sync_database_url = DATABASE_URL
+
+engine = create_engine(sync_database_url, echo=True, future=True)
 
 SessionLocal = sessionmaker(
     autocommit=False,
@@ -21,5 +25,5 @@ def get_db():
     db = SessionLocal()
     try:
         yield db
-    finally: 
+    finally:
         db.close()

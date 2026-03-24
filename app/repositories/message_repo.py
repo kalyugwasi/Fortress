@@ -1,6 +1,6 @@
+from datetime import datetime, UTC, timezone
 from sqlalchemy.orm import Session
 from app.models import Message
-from datetime import datetime
 
 def save_message(db:Session,recipient_id,message_number,sealed_blob,expires_at=None):
     message = Message(
@@ -29,15 +29,9 @@ def delete_message(db:Session,message_id:int):
         db.commit()
     return message
 
-def purge_expired_messages(db: Session):
-    now = datetime.utcnow()
-
-    deleted = (
-        db.query(Message)
-        .filter(Message.expires_at.isnot(None))
-        .filter(Message.expires_at <= now)   # ✅ critical fix
-        .delete(synchronize_session=False)   # ✅ critical fix
-    )
-
-    db.commit()
-    return deleted
+def get_expired_messages(db):
+    now = datetime.now(timezone.utc).replace(tzinfo=None)  # strip tz for SQLite comparison
+    return db.query(Message).filter(
+        Message.expires_at != None,
+        Message.expires_at < now
+    ).all()

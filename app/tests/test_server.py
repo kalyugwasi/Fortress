@@ -7,6 +7,7 @@ import time
 import base64
 import json
 import pytest
+from datetime import timezone,timedelta,datetime
 
 from app.crypto.keys import (
     generate_identity_keypair,
@@ -459,28 +460,37 @@ class TestMessaging:
                 "recipient_id": bob_auth["id"],
                 "sealed_blob": sealed_blob,
                 "message_number": 4,
-                "ttl_seconds": 5,
+                "ttl_seconds": 2, # Shorter TTL for faster tests
             },
             headers=alice_auth["headers"],
         )
         assert resp.status_code == 201
         message_id = resp.json()["id"]
 
-        # wait for TTL + cleanup cycle (cleanup runs every 60s in prod
-        # but call purge directly in test to avoid 70s wait)
+        # 1. Wait for TTL to expire
+        import time
+        time.sleep(2) 
+
+        # 2. Manual Purge
         from app.services.message_service import purge_expired_messages
         from app.database import SessionLocal
 
-        time.sleep(6)  # let TTL expire
-
         db = SessionLocal()
         try:
-            purge_expired_messages(db)
+            # Add a commit here just in case to ensure we're starting fresh
+            db.commit() 
+            deleted_count = purge_expired_messages(db)
+            # LOG THIS: If this is 0, the query logic is the problem
+            print(f"\nDELETED COUNT: {deleted_count}") 
         finally:
             db.close()
 
-        inbox = client.get("/messages/inbox", headers=bob_auth["headers"]).json()
+        # 3. Fetch inbox AGAIN
+        # Ensure the test client isn't reusing a cached response
+        resp = client.get("/messages/inbox", headers=bob_auth["headers"])
+        inbox = resp.json()
         ids = [m["id"] for m in inbox]
+        
         assert message_id not in ids
 
 

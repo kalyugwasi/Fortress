@@ -4,3 +4,12 @@ fortress.db
 __pycache__/
 *.py[cod]
 *$py.class
+.dockerignore
+Dockerfile
+docker-compose.yml
+alembic.ini
+/alembic
+alembic/env.py
+alembic/README
+alembic/script.py.mako
+start.sh

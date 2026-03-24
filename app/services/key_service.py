@@ -11,6 +11,8 @@ def _deserialize_bundle_otpks(bundle):
         keys = json.loads(bundle.one_time_prekeys)
     else:
         keys = bundle.one_time_prekeys or []
+    # normalize back onto the instance so callers see a list
+    bundle.one_time_prekeys = keys
     return bundle
 
 def upload_key_bundle(db:Session,user_id:int,payload:KeyBundleUpload):

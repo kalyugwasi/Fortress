@@ -32,7 +32,7 @@ def update_bundle(db:Session,bundle:KeyBundle,**fields):
             value = json.dumps(value)
         setattr(bundle,key,value)
     db.commit()
-    db.refresh()
+    db.refresh(bundle)
     return bundle
 
 def pop_one_time_prekey(db:Session,bundle:KeyBundle):

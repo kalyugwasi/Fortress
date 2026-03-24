@@ -16,7 +16,7 @@ async def send_message(db:Session,sender_id:int,payload:MessageSend):
     upload_blob(blob_key,raw)
 
     if payload.ttl_seconds is not None:
-        expires_at = datetime.utcnow().replace(microsecond=0) + timedelta(seconds=payload.ttl_seconds)
+        expires_at = datetime.now(timezone.utc).replace(tzinfo=None, microsecond=0) + timedelta(seconds=payload.ttl_seconds)
     else:
         expires_at = None
         
@@ -55,24 +55,24 @@ def confirm_delivery(db:Session,message_id:int,user_id:int):
     if message.recipient_id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail="Not allowed")
     
-    delete_blob(message_repo.Message.sealed_blob)
-    
+    # delete the blob associated with the found message instance
+    try:
+        delete_blob(message.sealed_blob)
+    except Exception:
+        # best-effort: if blob deletion fails, still proceed to remove DB record
+        pass
+
     message_repo.delete_message(db,message_id)
     return {"message":"deleted"}
 
 def purge_expired_messages(db):
-    from app.models import Message
-    from datetime import datetime
-
-    now = datetime.utcnow().replace(microsecond=0)
-
-    deleted = (
-        db.query(Message)
-        .filter(Message.expires_at.isnot(None))
-        .filter(Message.expires_at <= now)
-        .delete(synchronize_session=False)
-    )
-
-    db.commit()
-
+    expired = message_repo.get_expired_messages(db)
+    deleted = 0
+    for msg in expired:
+        try:
+            delete_blob(msg.sealed_blob)
+        except Exception:
+            pass
+        message_repo.delete_message(db,msg.id)
+        deleted += 1
     return deleted

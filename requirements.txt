@@ -15,3 +15,7 @@ pytest-asyncio
 httpx
 websockets
 requests
+python-multipart
+psycopg2-binary
+psycopg2
+alembic
