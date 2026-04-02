@@ -36,7 +36,13 @@ def fetch_key_bundle(db:Session,user_id:int):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Key Bundle not found")
     # Deserialize stored JSON string back to list before repo operates on it
     _deserialize_bundle_otpks(bundle)
-    otp = pop_one_time_prekey(db,bundle)
+    if not bundle.one_time_prekeys:
+        otp = None
+    else:
+        otp = bundle.one_time_prekeys.pop(0)
+        bundle.one_time_prekeys = json.dumps(bundle.one_time_prekeys)
+        db.add(bundle)
+        db.commit()
     return KeyBundleResponse(
         user_id=bundle.user_id,
         identity_key=bundle.identity_key,
